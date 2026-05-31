@@ -1,0 +1,13 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Cursor local state (keep skills versioned)
+.cursor/projects/
+
+# Agents installer cache
+.agents/
