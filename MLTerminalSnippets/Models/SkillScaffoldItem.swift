@@ -12,19 +12,31 @@ struct SkillScaffoldItem: Sendable, Identifiable, Hashable {
     let gitURL: String
     let skillFolderName: String
     let slug: String
+    let usageNotes: String
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         name: String,
         gitURL: String,
         skillFolderName: String,
-        slug: String
+        slug: String,
+        usageNotes: String = ""
     ) {
         self.id = id
         self.name = name
         self.gitURL = gitURL
         self.skillFolderName = skillFolderName
         self.slug = slug
+        self.usageNotes = usageNotes
+    }
+
+    /// Texto para tabela "Quando usar" em AGENTS.md.
+    nonisolated var whenToUseDisplay: String {
+        let trimmed = usageNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Use ao trabalhar em código relacionado a este skill."
+        }
+        return trimmed
     }
 }
 
@@ -37,7 +49,8 @@ extension SkillScaffoldItem {
             name: repository.name,
             gitURL: repository.gitURL,
             skillFolderName: repository.skillFolderName,
-            slug: repository.slug
+            slug: repository.slug,
+            usageNotes: repository.notes
         )
     }
 

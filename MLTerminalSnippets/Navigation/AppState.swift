@@ -25,21 +25,21 @@ enum ProjectDetailMode: Equatable {
     case none
     case viewing
     case creating
-    case success(path: String)
+    case success(path: String, installFailures: [SkillInstallFailure])
 
     static func == (lhs: ProjectDetailMode, rhs: ProjectDetailMode) -> Bool {
         switch (lhs, rhs) {
         case (.none, .none), (.viewing, .viewing), (.creating, .creating):
             return true
-        case (.success(let a), .success(let b)):
-            return a == b
+        case (.success(let pathA, let failuresA), .success(let pathB, let failuresB)):
+            return pathA == pathB && failuresA == failuresB
         default:
             return false
         }
     }
 }
 
-struct ProjectCreationDraft: Equatable {
+struct ProjectCreationDraft: Equatable, Sendable {
     var name: String = ""
     var contextMarkdown: String = ""
     var selectedSkillIDs: Set<UUID> = []
@@ -47,7 +47,7 @@ struct ProjectCreationDraft: Equatable {
     var swiftProjectKind: SwiftProjectKind = .macOSApp
     var parentDirectoryURL: URL?
     var parentDirectoryDisplay: String = ""
-    var gitInit: Bool = true
+    var recreateIfExists: Bool = false
     var installSkills: Bool = true
     var currentStep: Int = 0
 

@@ -43,8 +43,8 @@ struct ProjectCreationFlowView: View {
         VStack(spacing: 0) {
             if appState.isGeneratingProject {
                 generatingOverlay
-            } else if case .success(let path) = appState.projectDetailMode {
-                successView(path: path)
+            } else if case .success(let path, let installFailures) = appState.projectDetailMode {
+                successView(path: path, installFailures: installFailures)
             } else {
                 wizardContent
             }
@@ -212,8 +212,14 @@ struct ProjectCreationFlowView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Toggle("Inicializar Git", isOn: $appState.projectDraft.gitInit)
-            Toggle("Instalar skills via Git", isOn: $appState.projectDraft.installSkills)
+            if ProjectWizardValidator.destinationAlreadyExists(draft: appState.projectDraft) {
+                Text("A pasta de destino já existe. Ative “Recriar pasta existente” para substituir todo o conteúdo.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Toggle("Recriar pasta existente", isOn: $appState.projectDraft.recreateIfExists)
+            }
+            Toggle("Copiar skills do cache local", isOn: $appState.projectDraft.installSkills)
+                .help("Copia de SkillsCache.bundle no app ou do cache importado em Application Support.")
         }
         .formStyle(.grouped)
     }
@@ -270,17 +276,35 @@ struct ProjectCreationFlowView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func successView(path: String) -> some View {
+    private func successView(path: String, installFailures: [SkillInstallFailure]) -> some View {
         let url = URL(fileURLWithPath: path)
         return VStack(spacing: 24) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: installFailures.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(.green)
-            Text("Projeto criado com sucesso")
+                .foregroundStyle(installFailures.isEmpty ? .green : .orange)
+            Text(installFailures.isEmpty ? "Projeto criado com sucesso" : "Projeto criado com avisos")
                 .font(.title2.weight(.semibold))
             Text(path)
                 .font(.caption.monospaced())
                 .textSelection(.enabled)
+            if !installFailures.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Alguns skills não foram copiados do cache local:")
+                        .font(.subheadline.weight(.medium))
+                    ForEach(installFailures, id: \.displayMessage) { failure in
+                        Text("• \(failure.displayMessage)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Text("Importe a pasta do skill em Repositórios ou use os comandos `npx skills add` no README.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .frame(maxWidth: 480)
+                .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            }
             HStack(spacing: 16) {
                 Button("Abrir no Finder") { WorkspaceOpener.openInFinder(url) }
                     .keyboardShortcut("O", modifiers: [.command, .shift])
@@ -312,7 +336,7 @@ struct ProjectCreationFlowView: View {
             parentDirectory: parent,
             ideTool: draft.ideTool,
             swiftProjectKind: draft.swiftProjectKind,
-            gitInit: draft.gitInit,
+            recreateIfExists: draft.recreateIfExists,
             installSkills: draft.installSkills
         )
 
@@ -332,7 +356,7 @@ struct ProjectCreationFlowView: View {
                 outputPathDisplay: result.projectURL.path,
                 ideTool: draft.ideTool,
                 swiftProjectKind: draft.swiftProjectKind,
-                gitInitOnGenerate: draft.gitInit,
+                gitInitOnGenerate: false,
                 installSkillsOnGenerate: draft.installSkills,
                 selectedSkills: selectedSkills
             )
@@ -340,7 +364,10 @@ struct ProjectCreationFlowView: View {
             try? modelContext.save()
 
             appState.selectedProjectID = project.id
-            appState.projectDetailMode = .success(path: result.projectURL.path)
+            appState.projectDetailMode = .success(
+                path: result.projectURL.path,
+                installFailures: result.installFailures
+            )
             appState.isGeneratingProject = false
         } catch {
             appState.isGeneratingProject = false

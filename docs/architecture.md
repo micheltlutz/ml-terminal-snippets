@@ -5,7 +5,7 @@
 **MLTerminalSnippets** é um app macOS nativo para:
 
 1. Gerenciar **repositórios Git de Agent Skills** (cadastro, edição, sync iCloud).
-2. **Gerar projetos** com contexto, skills, tipo Swift (macOS/iOS/SPM) e scaffold **Cursor** (`AGENTS.md`, esqueleto Swift, `.cursor/skills/`, regras).
+2. **Gerar projetos** com contexto, skills, tipo Swift (macOS/iOS/SPM) e scaffold **Cursor** (`AGENTS.md`, `.gitignore`, `.cursor/skills/`, regras).
 3. Cadastrar **acessos SSH** e abrir o comando no **Terminal.app**.
 
 ## Stack
@@ -17,7 +17,7 @@
 | Persistência | SwiftData + `cloudKitDatabase: .automatic` |
 | Concorrência | Swift 6, `@MainActor` na UI e serviços AppKit |
 | Sandbox | App Sandbox, arquivos do usuário, rede, Apple Events |
-| Integrações | Git (sparse clone), Terminal.app (AppleScript), Finder, Cursor |
+| Integrações | Cache local de skills, Terminal.app (AppleScript), Finder, Cursor |
 
 **Deployment:** macOS 15.7+ · Bundle `me.micheltlutz.MLTerminalSnippets`
 
@@ -41,8 +41,8 @@ flowchart TB
   subgraph services [Servicos]
     Seed[SeedDataService]
     Scaffold[ProjectScaffolder]
-    Skeleton[SwiftProjectSkeletonBuilder]
-    GitInstall[SkillGitInstaller]
+    DocsLoader[ProjectDocsTemplateLoader]
+    GitInstall[SkillCacheService]
     Templates[ProjectTemplateBuilder]
     GitignoreL[GitignoreTemplateLoader]
     SSHCmd[SSHCommandBuilder]
@@ -63,7 +63,7 @@ flowchart TB
   Shell --> SSH
   Repos --> SD
   Projects --> Scaffold
-  Scaffold --> Skeleton
+  Scaffold --> DocsLoader
   Scaffold --> GitignoreL
   Scaffold --> GitInstall
   SSH --> SSHCmd
@@ -111,9 +111,9 @@ Na primeira execução, `SeedDataService` insere 5 skills (SwiftUI Pro, SwiftDat
 ### Novo projeto (wizard)
 
 1. Usuário preenche 5 etapas (identidade com **tipo Swift** → contexto → skills → destino → revisão).
-2. `ProjectScaffolder` cria esqueleto Swift, config Cursor, README, AGENTS.md, `.gitignore` (template).
-3. Opcional: `SkillGitInstaller` (sparse clone) → `{layout.skillsRelativePath}/{slug}/`.
-4. Opcional: `git init`.
+2. `ProjectScaffolder` cria pasta, config Cursor, README, AGENTS.md, `.gitignore` (template) e `docs/xcode-setup.md` (macOS/iOS).
+3. Opcional: `SkillCacheService` copia de `SkillsCache.bundle` ou Application Support → `{layout.skillsRelativePath}/{slug}/`.
+4. Escreve `.gitignore` (template); o usuário inicializa Git manualmente se quiser.
 5. Persiste `SnippetProject` com bookmark da pasta.
 
 ### Acesso SSH → Terminal
@@ -128,9 +128,14 @@ Sidebar reserva itens desabilitados: **Templates**, **Catálogo**, **Snippets**.
 
 ## Testes
 
-| Arquivo | Escopo |
-|---------|--------|
-| `ProjectTemplateBuilderTests` | README, AGENTS, file tree |
-| `SSHCommandBuilderTests` | Montagem de comando SSH |
+| Arquivo | Escopo | Tags |
+|---------|--------|------|
+| `ScaffoldTemplateTests` | Gitignore, layouts IDE, tokens, docs/xcode-setup | `.scaffold`, `.templates` |
+| `ProjectScaffolderTests` | Validação de nomes, recreate, cópia de skills | `.scaffold`, `.skills` |
+| `SkillCacheServiceTests` | Cache local, import, bundle built-ins | `.skills`, `.smoke` |
+| `ProjectTemplateBuilderTests` | README, AGENTS.md, formulário de repo | `.templates`, `.validation` |
+| `ProjectWizardValidatorTests` | Etapas do wizard, destino, canGenerate | `.validation` |
+| `SeedDataServiceTests` | Built-ins, slugs, usageNotes | `.skills` |
+| `SSHCommandBuilderTests` | Montagem de comando SSH | `.validation` |
 
-Testes de UI não fazem parte do MVP.
+Executar no Xcode: **Product → Test** (⌘U). Testes rodam no host app para acessar `SkillsCache.bundle`.

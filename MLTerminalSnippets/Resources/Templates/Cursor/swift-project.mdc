@@ -8,6 +8,8 @@ alwaysApply: false
 
 - Leia `AGENTS.md` na raiz antes de alterar código.
 - Swift 6+; prefira Swift Concurrency (`async`/`await`, `@MainActor`).
-- Organize por feature: `App/`, `Models/`, `Views/`, `Services/` (apps) ou `Sources/` (SPM).
+- Organize código por feature, alinhado ao contexto descrito em `AGENTS.md`.
 - Não adicione dependências de terceiros sem confirmar com o usuário.
-- Use os skills em `.cursor/skills/` quando relevante ao tipo de tarefa.
+- Leia o `SKILL.md` relevante antes de implementar; skills deste projeto:
+
+{{SKILL_SLUGS}}

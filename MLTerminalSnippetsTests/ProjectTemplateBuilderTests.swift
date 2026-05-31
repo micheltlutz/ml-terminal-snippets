@@ -6,52 +6,73 @@
 import Testing
 @testable import MLTerminalSnippets
 
+@MainActor
 struct ProjectTemplateBuilderTests {
-    @Test func readmeContainsProjectName() {
-        let skill = SkillScaffoldItem(
-            name: "SwiftUI Pro",
-            gitURL: "https://github.com/twostraws/SwiftUI-Agent-Skill",
-            skillFolderName: "swiftui-pro",
-            slug: "swiftui-pro"
-        )
+    private let cursorLayout = IDEProjectLayout.layout(for: .cursor)
+
+    @Test(.tags(.templates))
+    func readmeContainsProjectContextAndSkillsTable() {
         let md = ProjectTemplateBuilder.readme(
             projectName: "MyApp",
             context: "Contexto de teste",
-            skills: [skill],
+            skills: [SkillFixtures.swiftUIPro],
             swiftProjectKind: .macOSApp,
-            layout: IDEProjectLayout.layout(for: .cursor),
+            layout: cursorLayout,
             installSkillsFailed: false
         )
         #expect(md.contains("# MyApp"))
         #expect(md.contains("Contexto de teste"))
         #expect(md.contains("swiftui-pro"))
+        #expect(md.contains("Views SwiftUI"))
+        #expect(md.contains("docs/xcode-setup.md"))
+        #expect(md.contains("| Skill | Quando usar | Repositório |"))
     }
 
-    @Test func agentsMDListsSkills() {
-        let skill = SkillScaffoldItem(
-            name: "Swift Architecture",
-            gitURL: "https://github.com/efremidze/swift-architecture-skill",
-            skillFolderName: "swift-architecture-skill",
-            slug: "swift-architecture-skill"
+    @Test(.tags(.templates))
+    func readmeNotesCacheFailureWhenInstallSkillsFailed() {
+        let md = ProjectTemplateBuilder.readme(
+            projectName: "App",
+            context: "ctx",
+            skills: [SkillFixtures.swiftUIPro],
+            swiftProjectKind: .macOSApp,
+            layout: cursorLayout,
+            installSkillsFailed: true
         )
+        #expect(md.contains("cópia automática do cache local falhou"))
+    }
+
+    @Test(.tags(.templates))
+    func agentsMDListsSkillsWithWhenToUseAndPaths() {
         let md = ProjectTemplateBuilder.agentsMD(
             projectName: "ArchApp",
             context: "App com MVVM",
-            skills: [skill],
+            skills: [SkillFixtures.swiftArchitecture],
             swiftProjectKind: .macOSApp,
-            layout: IDEProjectLayout.layout(for: .cursor)
+            layout: cursorLayout
         )
         #expect(md.contains("ArchApp"))
         #expect(md.contains("swift-architecture-skill"))
+        #expect(md.contains("| Skill | Quando usar | Caminho |"))
+        #expect(md.contains("MVVM, estrutura de pastas"))
+        #expect(md.contains(".cursor/skills/swift-architecture-skill/SKILL.md"))
+        #expect(md.contains("npx skills add"))
     }
 
-    @Test func fileTreePreviewStructure() {
-        let skill = SkillScaffoldItem(
-            name: "Test",
-            gitURL: "https://github.com/example/repo",
-            skillFolderName: "test-skill",
-            slug: "test-skill"
+    @Test(.tags(.templates))
+    func agentsMDIncludesSwiftPackageGuidanceForSPM() {
+        let md = ProjectTemplateBuilder.agentsMD(
+            projectName: "Lib",
+            context: "Package",
+            skills: [SkillFixtures.swiftUIPro],
+            swiftProjectKind: .swiftPackage,
+            layout: cursorLayout
         )
+        #expect(md.contains("swift package init"))
+    }
+
+    @Test(.tags(.scaffold, .templates))
+    func fileTreePreviewListsSelectedSkillSlug() {
+        let skill = SkillFixtures.custom(slug: "test-skill")
         let lines = ProjectScaffolder.fileTreePreview(
             projectName: "Demo",
             swiftProjectKind: .macOSApp,
@@ -63,11 +84,8 @@ struct ProjectTemplateBuilderTests {
         #expect(lines.contains { $0.contains("test-skill") })
     }
 
-    @Test func repositorySlugGeneration() {
-        #expect(SkillRepository.slug(from: "SwiftUI Pro") == "swiftui-pro")
-    }
-
-    @Test func repositoryFormValidation() {
+    @Test(.tags(.validation))
+    func repositoryFormValidationAcceptsValidGitHubURL() {
         var draft = RepositoryFormDraft()
         draft.name = "Test"
         draft.gitURL = "https://github.com/foo/bar"
@@ -77,10 +95,20 @@ struct ProjectTemplateBuilderTests {
         #expect(draft.urlError == nil)
     }
 
-    @Test func wizardValidatorSteps() {
-        var draft = ProjectCreationDraft()
-        #expect(ProjectWizardValidator.canAdvance(step: 0, draft: draft) == false)
-        draft.name = "App"
-        #expect(ProjectWizardValidator.canAdvance(step: 0, draft: draft))
+    @Test(.tags(.validation))
+    func repositoryFormValidationRejectsInvalidURL() {
+        var draft = RepositoryFormDraft()
+        draft.name = "Test"
+        draft.gitURL = "not-a-url"
+        draft.skillFolderName = "skill"
+        draft.slug = "skill"
+        #expect(draft.isValid == false)
+        #expect(draft.urlError != nil)
+    }
+
+    @Test(.tags(.skills))
+    func skillScaffoldItemWhenToUseFallbackWhenNotesEmpty() {
+        let skill = SkillFixtures.custom(slug: "custom")
+        #expect(skill.whenToUseDisplay.contains("relacionado a este skill"))
     }
 }

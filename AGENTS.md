@@ -13,7 +13,7 @@ MLTerminalSnippets é um app macOS para:
 
 1. Cadastrar e sincronizar repositórios Git de Agent Skills (via iCloud entre Macs).
 2. Criar projetos com contexto, skills selecionados e IDE (Cursor no MVP).
-3. Gerar scaffold: esqueleto Swift (macOS/iOS/SPM), `README.md`, `AGENTS.md`, `.gitignore` (templates no bundle), `.cursor/skills/` + `.cursor/rules/` (clone sparse do Git).
+3. Gerar scaffold: contexto, `README.md`, `AGENTS.md`, `.gitignore` (templates no bundle), `.cursor/skills/` (cópia de `SkillsCache.bundle`) + `.cursor/rules/`.
 
 ## Skills instalados (`.cursor/skills/`)
 

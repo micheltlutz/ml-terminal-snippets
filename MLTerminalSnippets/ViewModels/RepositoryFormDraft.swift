@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct RepositoryFormDraft: Equatable {
+struct RepositoryFormDraft: Equatable, Sendable {
     var name: String = ""
     var gitURL: String = ""
     var skillFolderName: String = ""
@@ -14,6 +14,7 @@ struct RepositoryFormDraft: Equatable {
 
     init() {}
 
+    @MainActor
     init(from repository: SkillRepository) {
         name = repository.name
         gitURL = repository.gitURL

@@ -30,19 +30,23 @@ enum ProjectTemplateBuilder: Sendable {
             "",
             "## Agent Skills",
             "",
-            "| Skill | Repositório |",
-            "|-------|-------------|",
+            "| Skill | Quando usar | Repositório |",
+            "|-------|-------------|-------------|",
         ]
 
         for skill in skills {
-            lines.append("| \(skill.name) (`\(skill.slug)`) | [GitHub](\(skill.gitURL)) |")
+            lines.append(
+                "| \(skill.name) (`\(skill.slug)`) | \(skill.whenToUseDisplay) | [GitHub](\(skill.gitURL)) |"
+            )
         }
 
         lines += [
             "",
+            "Skills copiados de `\(layout.skillsRelativePath)/{slug}/` (cada pasta deve conter `SKILL.md`).",
+            "",
             "## Instalar skills (fallback)",
             "",
-            "Se as pastas em `\(layout.skillsRelativePath)/` não estiverem presentes, execute:",
+            "Se as pastas em `\(layout.skillsRelativePath)/` não estiverem presentes, importe no app (Repositórios → Cache local) ou execute:",
             "",
         ]
 
@@ -56,7 +60,7 @@ enum ProjectTemplateBuilder: Sendable {
 
         if installSkillsFailed {
             lines += [
-                "> **Nota:** A instalação automática via Git falhou parcialmente ou totalmente. Use os comandos acima.",
+                "> **Nota:** A cópia automática do cache local falhou parcialmente ou totalmente. Importe as pastas em Repositórios ou use os comandos acima.",
                 "",
             ]
         }
@@ -66,14 +70,18 @@ enum ProjectTemplateBuilder: Sendable {
             lines += [
                 "## Próximo passo: Xcode",
                 "",
-                "Este repositório foi gerado **sem** `.xcodeproj`. Siga [docs/xcode-setup.md](docs/xcode-setup.md).",
+                "Este repositório contém contexto, skills e documentação para agentes — **sem** `.xcodeproj` gerado.",
+                "Siga [docs/xcode-setup.md](docs/xcode-setup.md) para criar o projeto Xcode manualmente.",
                 "",
             ]
         case .swiftPackage:
             lines += [
                 "## Próximo passo: Swift Package",
                 "",
+                "Inicialize o pacote na pasta deste projeto, se ainda não existir:",
+                "",
                 "```bash",
+                "swift package init --name \(projectName)",
                 "swift build",
                 "swift test",
                 "```",
@@ -116,23 +124,36 @@ enum ProjectTemplateBuilder: Sendable {
             "",
             "## Skills instalados (`\(layout.skillsRelativePath)/`)",
             "",
+            "Leia o `SKILL.md` de cada skill antes de implementar ou revisar código relacionado.",
+            "",
+            "| Skill | Quando usar | Caminho |",
+            "|-------|-------------|---------|",
         ]
 
         for skill in skills {
-            lines += [
-                "### \(skill.name) (`\(skill.slug)`)",
-                "",
-                "- Repositório: \(skill.gitURL)",
-                "- Pasta: `\(skill.skillFolderName)`",
-                "- Use ao trabalhar em código relacionado a este skill.",
-                "",
-            ]
+            lines.append(
+                "| `\(skill.slug)` | \(skill.whenToUseDisplay) | `\(layout.skillsRelativePath)/\(skill.slug)/SKILL.md` |"
+            )
+        }
+
+        lines += [
+            "",
+            "## Instalar skills localmente",
+            "",
+        ]
+
+        for skill in skills {
+            let url = skill.gitURL.lowercased()
+            lines.append("```bash")
+            lines.append("npx skills add \(url) --skill \(skill.skillFolderName)")
+            lines.append("```")
+            lines.append("")
         }
 
         lines += [
             "## Convenções",
             "",
-            "- Organize código por feature, não por tipo.",
+            "- Organize código por feature, alinhado ao contexto acima.",
             "- Prefira Swift Concurrency (`async`/`await`, `@MainActor`) em vez de callbacks.",
             "- Evite APIs SwiftUI depreciadas; siga as regras dos skills acima.",
             "- Só adicione dependências de terceiros após confirmar com o usuário.",
@@ -143,7 +164,14 @@ enum ProjectTemplateBuilder: Sendable {
                 "",
                 "## Xcode",
                 "",
-                "Consulte [docs/xcode-setup.md](docs/xcode-setup.md) para criar o `.xcodeproj` a partir deste esqueleto.",
+                "Consulte [docs/xcode-setup.md](docs/xcode-setup.md) para criar o `.xcodeproj` manualmente.",
+            ]
+        } else if swiftProjectKind == .swiftPackage {
+            lines += [
+                "",
+                "## Swift Package",
+                "",
+                "Use `swift package init` nesta pasta se ainda não houver `Package.swift`.",
             ]
         }
 
@@ -153,7 +181,7 @@ enum ProjectTemplateBuilder: Sendable {
                 "## Cursor",
                 "",
                 "- Regras do projeto: `.cursor/rules/swift-project.mdc`",
-                "- Skills: `.cursor/skills/`",
+                "- Skills: `.cursor/skills/{slug}/SKILL.md`",
             ]
         }
 
@@ -167,18 +195,19 @@ enum ProjectTemplateBuilder: Sendable {
             - Swift 6.0+
             - SwiftUI (macOS 15+)
             - SwiftData (quando aplicável)
-            - Esqueleto sem `.xcodeproj` — ver `docs/xcode-setup.md`
+            - Sem `.xcodeproj` gerado — ver `docs/xcode-setup.md`
             """
         case .iOSApp:
             """
             - Swift 6.0+
             - SwiftUI (iOS 18+)
             - SwiftData (quando aplicável)
-            - Esqueleto sem `.xcodeproj` — ver `docs/xcode-setup.md`
+            - Sem `.xcodeproj` gerado — ver `docs/xcode-setup.md`
             """
         case .swiftPackage:
             """
             - Swift 6.0+ / Swift Package Manager
+            - Inicialize com `swift package init` se necessário
             - `swift build` / `swift test`
             """
         }

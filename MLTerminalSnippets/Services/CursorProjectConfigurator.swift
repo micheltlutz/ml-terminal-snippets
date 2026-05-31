@@ -23,11 +23,12 @@ enum CursorProjectConfigurator: Sendable {
     nonisolated static func configure(
         projectRoot: URL,
         layout: IDEProjectLayout,
-        projectName: String
+        projectName: String,
+        skillSlugs: [String] = []
     ) throws {
         guard layout.ide == .cursor else { return }
 
-        let tokens = TemplateTokenReplacer.Tokens(projectName: projectName)
+        let tokens = TemplateTokenReplacer.Tokens(projectName: projectName, skillSlugs: skillSlugs)
 
         if let rulesDir = layout.rulesDirectory(projectRoot: projectRoot) {
             try FileManager.default.createDirectory(at: rulesDir, withIntermediateDirectories: true)

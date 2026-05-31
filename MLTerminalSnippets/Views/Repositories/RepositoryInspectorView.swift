@@ -5,6 +5,7 @@
 
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RepositoryInspectorView: View {
     @Bindable var appState: AppState
@@ -13,6 +14,10 @@ struct RepositoryInspectorView: View {
 
     @State private var draft = RepositoryFormDraft()
     @State private var showDeleteConfirm = false
+    @State private var showSkillImportPicker = false
+    @State private var showImportError = false
+    @State private var importErrorMessage = ""
+    @State private var cacheRefreshToken = UUID()
 
     var body: some View {
         Group {
@@ -44,6 +49,18 @@ struct RepositoryInspectorView: View {
                 Text("Esta ação não pode ser desfeita.")
             }
         }
+        .fileImporter(
+            isPresented: $showSkillImportPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            handleSkillImport(result)
+        }
+        .alert("Importar skill", isPresented: $showImportError) {
+            Button("OK") {}
+        } message: {
+            Text(importErrorMessage)
+        }
     }
 
     private var title: String {
@@ -73,11 +90,12 @@ struct RepositoryInspectorView: View {
                 if isEditing {
                     notesField
                 } else if !draft.notes.isEmpty {
-                    LabeledContent("Notas") { Text(draft.notes) }
+                    LabeledContent("Quando usar") { Text(draft.notes) }
                 }
             }
 
             if let repository, !isEditing {
+                cacheSection(for: repository)
                 Section("Metadados") {
                     if repository.isBuiltIn {
                         Label("Repositório recomendado", systemImage: "star.fill")
@@ -97,13 +115,72 @@ struct RepositoryInspectorView: View {
     }
 
     @ViewBuilder
+    private func cacheSection(for repository: SkillRepository) -> some View {
+        let _ = cacheRefreshToken
+        Section("Cache local") {
+            LabeledContent("Status") {
+                cacheStatusLabel(for: repository.slug)
+            }
+            Button("Importar pasta do skill…") {
+                showSkillImportPicker = true
+            }
+            .help("Selecione a pasta que contém SKILL.md (ex.: swiftui-pro). Será salva para uso na criação de projetos.")
+            if repository.isBuiltIn, SkillCacheService.bundledSkillDirectory(slug: repository.slug) != nil {
+                Text("Built-in incluído em SkillsCache.bundle no app.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cacheStatusLabel(for slug: String) -> some View {
+        let userDir = SkillCacheService.userCacheDirectory(for: slug)
+        if SkillContentValidator.isValidSkillDirectory(userDir) {
+            Label("Importado", systemImage: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        } else if SkillCacheService.bundledSkillDirectory(slug: slug) != nil {
+            Label("Incluído no app", systemImage: "shippingbox.fill")
+                .foregroundStyle(.blue)
+        } else {
+            Label("Indisponível — importe a pasta", systemImage: "exclamationmark.circle")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private func handleSkillImport(_ result: Result<[URL], Error>) {
+        guard let repository else { return }
+        switch result {
+        case .success(let urls):
+            guard let folder = urls.first else { return }
+            let accessed = folder.startAccessingSecurityScopedResource()
+            defer {
+                if accessed { folder.stopAccessingSecurityScopedResource() }
+            }
+            do {
+                try SkillCacheService.importToUserCache(from: folder, slug: repository.slug)
+                cacheRefreshToken = UUID()
+            } catch {
+                importErrorMessage = error.localizedDescription
+                showImportError = true
+            }
+        case .failure(let error):
+            importErrorMessage = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    @ViewBuilder
     private var notesField: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Notas")
+            Text("Quando usar")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             TextEditor(text: $draft.notes)
                 .frame(minHeight: 80)
+            Text("Aparece na tabela de skills do AGENTS.md gerado nos projetos.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
     }
 

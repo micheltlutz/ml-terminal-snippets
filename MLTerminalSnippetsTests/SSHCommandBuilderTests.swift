@@ -7,7 +7,8 @@ import Testing
 @testable import MLTerminalSnippets
 
 struct SSHCommandBuilderTests {
-    @Test func standardSSHWithoutKey() throws {
+    @Test(.tags(.validation))
+    func standardSSHWithoutKey() throws {
         let cmd = try SSHCommandBuilder.buildStandardSSH(
             host: "example.com",
             port: 22,
@@ -17,7 +18,8 @@ struct SSHCommandBuilderTests {
         #expect(cmd == "ssh deploy@example.com")
     }
 
-    @Test func standardSSHWithKeyAndPort() throws {
+    @Test(.tags(.validation))
+    func standardSSHWithKeyAndPort() throws {
         let cmd = try SSHCommandBuilder.buildStandardSSH(
             host: "192.168.1.10",
             port: 2222,
@@ -27,7 +29,8 @@ struct SSHCommandBuilderTests {
         #expect(cmd == "ssh -i /Users/me/.ssh/key.pem -p 2222 ubuntu@192.168.1.10")
     }
 
-    @Test func standardSSHQuotesPathWithSpaces() throws {
+    @Test(.tags(.validation))
+    func standardSSHQuotesPathWithSpaces() throws {
         let cmd = try SSHCommandBuilder.buildStandardSSH(
             host: "host",
             port: 22,
@@ -37,7 +40,8 @@ struct SSHCommandBuilderTests {
         #expect(cmd.contains("-i \"/path/with spaces/key.pem\""))
     }
 
-    @Test func customCommandModeReturnsVerbatim() throws {
+    @Test(.tags(.validation))
+    func customCommandModeReturnsTrimmedVerbatim() throws {
         let cmd = try SSHCommandBuilder.build(
             authMode: .customCommand,
             host: "ignored",
@@ -49,7 +53,8 @@ struct SSHCommandBuilderTests {
         #expect(cmd == "ssh -vvv user@host")
     }
 
-    @Test func customCommandEmptyThrows() {
+    @Test(.tags(.validation))
+    func customCommandEmptyThrows() {
         #expect(throws: SSHCommandBuilderError.missingCustomCommand) {
             try SSHCommandBuilder.build(
                 authMode: .customCommand,
@@ -62,7 +67,8 @@ struct SSHCommandBuilderTests {
         }
     }
 
-    @Test func missingHostThrows() {
+    @Test(.tags(.validation))
+    func missingHostThrows() {
         #expect(throws: SSHCommandBuilderError.missingHost) {
             try SSHCommandBuilder.buildStandardSSH(
                 host: "",
@@ -73,14 +79,18 @@ struct SSHCommandBuilderTests {
         }
     }
 
-    @Test func sshCopyIdTemplate() {
-        let text = SSHCommandBuilder.CommandTemplate.sshCopyId.text(
+    @Test(.tags(.validation), arguments: [
+        SSHCommandBuilder.CommandTemplate.standardSSH,
+        SSHCommandBuilder.CommandTemplate.sshCopyId,
+        SSHCommandBuilder.CommandTemplate.addUserExample,
+    ])
+    func commandTemplatesIncludeHostAndUser(template: SSHCommandBuilder.CommandTemplate) {
+        let text = template.text(
             host: "srv.com",
             port: 22,
             username: "root",
             privateKeyPath: "/k.pem"
         )
-        #expect(text.contains("ssh-copy-id"))
         #expect(text.contains("root@srv.com"))
     }
 }

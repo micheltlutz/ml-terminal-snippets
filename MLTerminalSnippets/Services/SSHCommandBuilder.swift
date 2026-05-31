@@ -5,12 +5,12 @@
 
 import Foundation
 
-enum SSHCommandBuilderError: LocalizedError {
+enum SSHCommandBuilderError: LocalizedError, Sendable {
     case missingHost
     case missingUsername
     case missingCustomCommand
 
-    var errorDescription: String? {
+    nonisolated var errorDescription: String? {
         switch self {
         case .missingHost: "Informe o host."
         case .missingUsername: "Informe o usuário."
@@ -19,7 +19,8 @@ enum SSHCommandBuilderError: LocalizedError {
     }
 }
 
-enum SSHCommandBuilder {
+enum SSHCommandBuilder: Sendable {
+    @MainActor
     static func build(from connection: SSHConnection) throws -> String {
         try build(
             authMode: connection.authMode,
@@ -31,7 +32,7 @@ enum SSHCommandBuilder {
         )
     }
 
-    static func build(
+    nonisolated static func build(
         authMode: SSHAuthMode,
         host: String,
         port: Int,
@@ -54,7 +55,7 @@ enum SSHCommandBuilder {
         }
     }
 
-    static func buildStandardSSH(
+    nonisolated static func buildStandardSSH(
         host: String,
         port: Int,
         username: String,
@@ -76,7 +77,7 @@ enum SSHCommandBuilder {
         return parts.joined(separator: " ")
     }
 
-    static func shellQuote(_ path: String) -> String {
+    nonisolated static func shellQuote(_ path: String) -> String {
         if path.contains(" ") || path.contains("'") || path.contains("\"") {
             let escaped = path.replacingOccurrences(of: "\"", with: "\\\"")
             return "\"\(escaped)\""
@@ -84,6 +85,7 @@ enum SSHCommandBuilder {
         return path
     }
 
+    @MainActor
     static func preview(from draft: SSHConnectionFormDraft) -> String {
         (try? build(
             authMode: draft.authMode,
@@ -95,12 +97,12 @@ enum SSHCommandBuilder {
         )) ?? "—"
     }
 
-    enum CommandTemplate {
+    enum CommandTemplate: Sendable {
         case standardSSH
         case sshCopyId
         case addUserExample
 
-        func text(
+        nonisolated func text(
             host: String,
             port: Int,
             username: String,
