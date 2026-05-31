@@ -44,6 +44,7 @@ struct ProjectCreationDraft: Equatable {
     var contextMarkdown: String = ""
     var selectedSkillIDs: Set<UUID> = []
     var ideTool: IDETool = .cursor
+    var swiftProjectKind: SwiftProjectKind = .macOSApp
     var parentDirectoryURL: URL?
     var parentDirectoryDisplay: String = ""
     var gitInit: Bool = true

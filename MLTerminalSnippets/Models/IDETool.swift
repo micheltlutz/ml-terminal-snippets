@@ -5,30 +5,30 @@
 
 import Foundation
 
-enum IDETool: String, Codable, CaseIterable, Identifiable {
+enum IDETool: String, Codable, CaseIterable, Identifiable, Sendable {
     case cursor
     case vscode
     case claudeCode
 
-    var id: String { rawValue }
+    nonisolated var id: String { rawValue }
 
-    var displayName: String {
+    nonisolated var displayName: String {
         switch self {
-        case .cursor: "Cursor"
-        case .vscode: "VS Code"
-        case .claudeCode: "Claude Code"
+        case .cursor: return "Cursor"
+        case .vscode: return "VS Code"
+        case .claudeCode: return "Claude Code"
         }
     }
 
-    var isAvailable: Bool {
+    nonisolated var isAvailable: Bool {
         self == .cursor
     }
 
-    var systemImage: String {
+    nonisolated var systemImage: String {
         switch self {
-        case .cursor: "cursorarrow.rays"
-        case .vscode: "chevron.left.forwardslash.chevron.right"
-        case .claudeCode: "sparkles"
+        case .cursor: return "cursorarrow.rays"
+        case .vscode: return "chevron.left.forwardslash.chevron.right"
+        case .claudeCode: return "sparkles"
         }
     }
 }

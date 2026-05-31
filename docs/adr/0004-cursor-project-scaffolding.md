@@ -12,22 +12,27 @@ Objetivo do produto: a partir de **contexto** + **skills selecionados** + **IDE*
 
 ### Saída gerada
 
+Ver [ADR 0007](0007-swift-skeleton-and-gitignore-templates.md) para o esqueleto Swift completo. Resumo:
+
 ```
 {ProjectName}/
-├── README.md           # contexto + tabela de skills + fallback npx
-├── AGENTS.md           # instruções para o agente Cursor
-├── .gitignore          # Xcode, macOS, .cursor/projects (não ignora skills)
-├── .cursor/skills/{slug}/   # opcional, via Git
-└── .git/               # opcional, git init
+├── {ProjectName}/      # App, Models, Views, Services (ou Package.swift / Sources para SPM)
+├── docs/xcode-setup.md # apps macOS/iOS
+├── README.md, AGENTS.md, .gitignore (template por tipo)
+├── .cursor/skills/{slug}/, .cursor/rules/swift-project.mdc, .cursorignore
+└── .git/               # opcional
 ```
 
 ### Serviços
 
 | Serviço | Função |
 |---------|--------|
-| `ProjectTemplateBuilder` | Texto de README, AGENTS, gitignore |
+| `SwiftProjectSkeletonBuilder` | Esqueleto Swift por `SwiftProjectKind` |
+| `GitignoreTemplateLoader` | `.gitignore` do bundle |
+| `IDEProjectLayout` / `CursorProjectConfigurator` | Caminhos por IDE + regras Cursor |
+| `ProjectTemplateBuilder` | Texto de README e AGENTS |
 | `ProjectScaffolder` | Orquestra criação de pastas e arquivos |
-| `SkillGitInstaller` | Sparse clone: `git clone --depth 1 --sparse` + `sparse-checkout set {skillFolderName}` |
+| `SkillGitInstaller` | Sparse clone em `skillsRoot` configurável |
 
 ### Repositórios built-in (seed)
 
@@ -35,7 +40,7 @@ Cinco skills iniciais (twostraws ×4 + swift-architecture-skill), inseridos uma 
 
 ### Wizard (5 etapas)
 
-Identidade → Contexto → Skills → Destino (pasta pai, flags) → Revisão (`FileTreePreview`).
+Identidade (nome, **tipo Swift**, IDE) → Contexto → Skills → Destino (pasta pai, flags) → Revisão (`FileTreePreview`).
 
 Persistência: `SnippetProject` com bookmark da pasta gerada para reabrir no Finder/Cursor.
 

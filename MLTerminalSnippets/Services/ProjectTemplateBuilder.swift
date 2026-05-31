@@ -5,15 +5,22 @@
 
 import Foundation
 
-enum ProjectTemplateBuilder {
-    static func readme(
+enum ProjectTemplateBuilder: Sendable {
+    nonisolated static func readme(
         projectName: String,
         context: String,
-        skills: [SkillRepository],
+        skills: [SkillScaffoldItem],
+        swiftProjectKind: SwiftProjectKind,
+        layout: IDEProjectLayout,
         installSkillsFailed: Bool
     ) -> String {
         var lines: [String] = [
             "# \(projectName)",
+            "",
+            "## Tipo de projeto",
+            "",
+            "- \(swiftProjectKind.displayName)",
+            "- IDE: \(layout.ide.displayName)",
             "",
             "## Contexto",
             "",
@@ -35,7 +42,7 @@ enum ProjectTemplateBuilder {
             "",
             "## Instalar skills (fallback)",
             "",
-            "Se as pastas em `.cursor/skills/` não estiverem presentes, execute:",
+            "Se as pastas em `\(layout.skillsRelativePath)/` não estiverem presentes, execute:",
             "",
         ]
 
@@ -54,6 +61,28 @@ enum ProjectTemplateBuilder {
             ]
         }
 
+        switch swiftProjectKind {
+        case .macOSApp, .iOSApp:
+            lines += [
+                "## Próximo passo: Xcode",
+                "",
+                "Este repositório foi gerado **sem** `.xcodeproj`. Siga [docs/xcode-setup.md](docs/xcode-setup.md).",
+                "",
+            ]
+        case .swiftPackage:
+            lines += [
+                "## Próximo passo: Swift Package",
+                "",
+                "```bash",
+                "swift build",
+                "swift test",
+                "```",
+                "",
+                "Para abrir no Xcode: `open Package.swift`.",
+                "",
+            ]
+        }
+
         lines += [
             "---",
             "",
@@ -63,20 +92,21 @@ enum ProjectTemplateBuilder {
         return lines.joined(separator: "\n")
     }
 
-    static func agentsMD(
+    nonisolated static func agentsMD(
         projectName: String,
         context: String,
-        skills: [SkillRepository]
+        skills: [SkillScaffoldItem],
+        swiftProjectKind: SwiftProjectKind,
+        layout: IDEProjectLayout
     ) -> String {
+        let stackBlock = stackSection(for: swiftProjectKind)
+
         var lines: [String] = [
-            "# AGENTS.md — \(projectName)",
+            "# \(layout.agentsFileName) — \(projectName)",
             "",
             "## Stack",
             "",
-            "- Swift 6.2+",
-            "- SwiftUI",
-            "- SwiftData (quando aplicável)",
-            "- macOS 15.7+ / iOS 26+ conforme o alvo do projeto",
+            stackBlock,
             "",
             "## Contexto do projeto",
             "",
@@ -84,7 +114,7 @@ enum ProjectTemplateBuilder {
                 ? "_Sem contexto adicional._"
                 : context.trimmingCharacters(in: .whitespacesAndNewlines),
             "",
-            "## Skills instalados (`.cursor/skills/`)",
+            "## Skills instalados (`\(layout.skillsRelativePath)/`)",
             "",
         ]
 
@@ -104,32 +134,53 @@ enum ProjectTemplateBuilder {
             "",
             "- Organize código por feature, não por tipo.",
             "- Prefira Swift Concurrency (`async`/`await`, `@MainActor`) em vez de callbacks.",
-            "- Evite APIs SwiftUI depreciadas; siga as regras dos skills Pro acima.",
+            "- Evite APIs SwiftUI depreciadas; siga as regras dos skills acima.",
             "- Só adicione dependências de terceiros após confirmar com o usuário.",
         ]
+
+        if swiftProjectKind == .macOSApp || swiftProjectKind == .iOSApp {
+            lines += [
+                "",
+                "## Xcode",
+                "",
+                "Consulte [docs/xcode-setup.md](docs/xcode-setup.md) para criar o `.xcodeproj` a partir deste esqueleto.",
+            ]
+        }
+
+        if layout.ide == .cursor {
+            lines += [
+                "",
+                "## Cursor",
+                "",
+                "- Regras do projeto: `.cursor/rules/swift-project.mdc`",
+                "- Skills: `.cursor/skills/`",
+            ]
+        }
 
         return lines.joined(separator: "\n")
     }
 
-    static let gitignore = """
-        # Xcode
-        DerivedData/
-        *.xcuserstate
-        *.xcscmblueprint
-        xcuserdata/
-
-        # SwiftPM
-        .build/
-        .swiftpm/
-
-        # macOS
-        .DS_Store
-
-        # Cursor (manter .cursor/skills versionado)
-        .cursor/projects/
-
-        # Env / secrets
-        .env
-        *.pem
-        """
+    private nonisolated static func stackSection(for kind: SwiftProjectKind) -> String {
+        switch kind {
+        case .macOSApp:
+            """
+            - Swift 6.0+
+            - SwiftUI (macOS 15+)
+            - SwiftData (quando aplicável)
+            - Esqueleto sem `.xcodeproj` — ver `docs/xcode-setup.md`
+            """
+        case .iOSApp:
+            """
+            - Swift 6.0+
+            - SwiftUI (iOS 18+)
+            - SwiftData (quando aplicável)
+            - Esqueleto sem `.xcodeproj` — ver `docs/xcode-setup.md`
+            """
+        case .swiftPackage:
+            """
+            - Swift 6.0+ / Swift Package Manager
+            - `swift build` / `swift test`
+            """
+        }
+    }
 }

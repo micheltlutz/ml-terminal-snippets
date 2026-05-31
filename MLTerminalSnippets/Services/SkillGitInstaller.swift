@@ -12,35 +12,34 @@ struct SkillInstallProgress: Sendable {
     let message: String
 }
 
-enum SkillGitInstallerError: LocalizedError {
+enum SkillGitInstallerError: LocalizedError, Sendable {
     case gitNotFound
     case cloneFailed(skill: String, output: String)
 
-    var errorDescription: String? {
+    nonisolated var errorDescription: String? {
         switch self {
         case .gitNotFound:
-            "Git não encontrado. Instale as Xcode Command Line Tools."
+            return "Git não encontrado. Instale as Xcode Command Line Tools."
         case .cloneFailed(let skill, let output):
-            "Falha ao clonar \(skill): \(output)"
+            return "Falha ao clonar \(skill): \(output)"
         }
     }
 }
 
-enum SkillGitInstaller {
-    private static let gitPaths = ["/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"]
+enum SkillGitInstaller: Sendable {
+    private nonisolated static let gitPaths = ["/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"]
 
-    static func gitExecutable() -> String? {
+    nonisolated static func gitExecutable() -> String? {
         gitPaths.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    static func install(
-        skills: [SkillRepository],
-        into projectDirectory: URL,
+    nonisolated static func install(
+        skills: [SkillScaffoldItem],
+        skillsRoot: URL,
         onProgress: (@Sendable (SkillInstallProgress) -> Void)? = nil
     ) async throws -> [String] {
         guard let git = gitExecutable() else { throw SkillGitInstallerError.gitNotFound }
 
-        let skillsRoot = projectDirectory.appendingPathComponent(".cursor/skills", isDirectory: true)
         try FileManager.default.createDirectory(at: skillsRoot, withIntermediateDirectories: true)
 
         var failures: [String] = []
@@ -89,7 +88,7 @@ enum SkillGitInstaller {
         return failures
     }
 
-    private static func runGit(git: String, arguments: [String]) async throws {
+    private nonisolated static func runGit(git: String, arguments: [String]) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: git)

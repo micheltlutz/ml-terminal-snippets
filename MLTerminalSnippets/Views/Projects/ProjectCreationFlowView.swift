@@ -35,6 +35,10 @@ struct ProjectCreationFlowView: View {
         repositories.filter { appState.projectDraft.selectedSkillIDs.contains($0.id) }
     }
 
+    private var selectedSkillSnapshots: [SkillScaffoldItem] {
+        SkillScaffoldItem.snapshots(from: selectedSkills)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if appState.isGeneratingProject {
@@ -130,6 +134,11 @@ struct ProjectCreationFlowView: View {
     private var identityStep: some View {
         Form {
             TextField("Nome do projeto", text: $appState.projectDraft.name)
+            Picker("Tipo de projeto", selection: $appState.projectDraft.swiftProjectKind) {
+                ForEach(SwiftProjectKind.allCases) { kind in
+                    Text(kind.displayName).tag(kind)
+                }
+            }
             Picker("IDE", selection: $appState.projectDraft.ideTool) {
                 Text("Cursor").tag(IDETool.cursor)
             }
@@ -216,7 +225,9 @@ struct ProjectCreationFlowView: View {
             FileTreePreview(
                 lines: ProjectScaffolder.fileTreePreview(
                     projectName: appState.projectDraft.name,
-                    skills: selectedSkills
+                    swiftProjectKind: appState.projectDraft.swiftProjectKind,
+                    ideTool: appState.projectDraft.ideTool,
+                    skills: selectedSkillSnapshots
                 )
             )
             .frame(height: 180)
@@ -226,7 +237,9 @@ struct ProjectCreationFlowView: View {
             Text(String(ProjectTemplateBuilder.agentsMD(
                 projectName: appState.projectDraft.name,
                 context: appState.projectDraft.contextMarkdown,
-                skills: selectedSkills
+                skills: selectedSkillSnapshots,
+                swiftProjectKind: appState.projectDraft.swiftProjectKind,
+                layout: IDEProjectLayout.effectiveLayout(for: appState.projectDraft.ideTool)
             ).prefix(600)))
             .font(.caption.monospaced())
             .textSelection(.enabled)
@@ -285,7 +298,7 @@ struct ProjectCreationFlowView: View {
     @MainActor
     private func generateProject() async {
         guard let parent = appState.projectDraft.parentDirectoryURL else { return }
-        let skills = selectedSkills
+        let skillSnapshots = SkillScaffoldItem.snapshots(from: selectedSkills)
         let draft = appState.projectDraft
 
         appState.isGeneratingProject = true
@@ -295,9 +308,10 @@ struct ProjectCreationFlowView: View {
         let request = ProjectScaffoldRequest(
             name: draft.name,
             contextMarkdown: draft.contextMarkdown,
-            skills: skills,
+            skills: skillSnapshots,
             parentDirectory: parent,
             ideTool: draft.ideTool,
+            swiftProjectKind: draft.swiftProjectKind,
             gitInit: draft.gitInit,
             installSkills: draft.installSkills
         )
@@ -317,9 +331,10 @@ struct ProjectCreationFlowView: View {
                 outputPathBookmark: bookmark,
                 outputPathDisplay: result.projectURL.path,
                 ideTool: draft.ideTool,
+                swiftProjectKind: draft.swiftProjectKind,
                 gitInitOnGenerate: draft.gitInit,
                 installSkillsOnGenerate: draft.installSkills,
-                selectedSkills: skills
+                selectedSkills: selectedSkills
             )
             modelContext.insert(project)
             try? modelContext.save()

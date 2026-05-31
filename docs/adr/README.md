@@ -21,6 +21,7 @@ Registro das decisões arquiteturais do **MLTerminalSnippets**, no formato inspi
 | [0004](0004-cursor-project-scaffolding.md) | Scaffold de projetos para Cursor | Aceito |
 | [0005](0005-three-column-navigation-shell.md) | Shell de navegação em 3 colunas | Aceito |
 | [0006](0006-ssh-access-and-terminal-launcher.md) | Acessos SSH e integração com Terminal | Aceito |
+| [0007](0007-swift-skeleton-and-gitignore-templates.md) | Esqueleto Swift, .gitignore templates, layouts IDE | Aceito |
 
 ## Como adicionar um ADR
 

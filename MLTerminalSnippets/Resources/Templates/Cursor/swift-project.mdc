@@ -1,0 +1,13 @@
+---
+description: Convenções Swift do projeto gerado pelo MLTerminalSnippets
+globs: "**/*.swift"
+alwaysApply: false
+---
+
+# Swift — {{PROJECT_NAME}}
+
+- Leia `AGENTS.md` na raiz antes de alterar código.
+- Swift 6+; prefira Swift Concurrency (`async`/`await`, `@MainActor`).
+- Organize por feature: `App/`, `Models/`, `Views/`, `Services/` (apps) ou `Sources/` (SPM).
+- Não adicione dependências de terceiros sem confirmar com o usuário.
+- Use os skills em `.cursor/skills/` quando relevante ao tipo de tarefa.

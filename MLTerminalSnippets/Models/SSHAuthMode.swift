@@ -5,16 +5,16 @@
 
 import Foundation
 
-enum SSHAuthMode: String, Codable, CaseIterable, Identifiable {
+enum SSHAuthMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case standard
     case customCommand
 
-    var id: String { rawValue }
+    nonisolated var id: String { rawValue }
 
-    var displayName: String {
+    nonisolated var displayName: String {
         switch self {
-        case .standard: "SSH padrão"
-        case .customCommand: "Comando personalizado"
+        case .standard: return "SSH padrão"
+        case .customCommand: return "Comando personalizado"
         }
     }
 }

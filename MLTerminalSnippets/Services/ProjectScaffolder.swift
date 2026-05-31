@@ -5,59 +5,108 @@
 
 import Foundation
 
-struct ProjectScaffoldRequest {
+struct ProjectScaffoldRequest: Sendable {
     let name: String
     let contextMarkdown: String
-    let skills: [SkillRepository]
+    let skills: [SkillScaffoldItem]
     let parentDirectory: URL
     let ideTool: IDETool
+    let swiftProjectKind: SwiftProjectKind
     let gitInit: Bool
     let installSkills: Bool
 }
 
-struct ProjectScaffoldResult {
+struct ProjectScaffoldResult: Sendable {
     let projectURL: URL
     let installFailures: [String]
     let logLines: [String]
 }
 
-enum ProjectScaffolderError: LocalizedError {
+enum ProjectScaffolderError: LocalizedError, Sendable {
     case invalidName
     case directoryExists(URL)
     case parentNotAccessible
     case writeFailed(String)
 
-    var errorDescription: String? {
+    nonisolated var errorDescription: String? {
         switch self {
-        case .invalidName: "Nome do projeto inválido."
-        case .directoryExists(let url): "A pasta já existe: \(url.path)"
-        case .parentNotAccessible: "Sem permissão na pasta de destino."
-        case .writeFailed(let msg): msg
+        case .invalidName: return "Nome do projeto inválido."
+        case .directoryExists(let url): return "A pasta já existe: \(url.path)"
+        case .parentNotAccessible: return "Sem permissão na pasta de destino."
+        case .writeFailed(let msg): return msg
         }
     }
 }
 
-enum ProjectScaffolder {
-    static func fileTreePreview(projectName: String, skills: [SkillRepository]) -> [String] {
-        var lines = [
-            "\(projectName)/",
+enum ProjectScaffolder: Sendable {
+    nonisolated static func fileTreePreview(
+        projectName: String,
+        swiftProjectKind: SwiftProjectKind,
+        ideTool: IDETool,
+        skills: [SkillScaffoldItem]
+    ) -> [String] {
+        let layout = IDEProjectLayout.effectiveLayout(for: ideTool)
+        let trimmed = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmed.isEmpty ? "ProjectName" : trimmed
+
+        var lines = ["\(name)/"]
+
+        switch swiftProjectKind {
+        case .macOSApp, .iOSApp:
+            lines += [
+                "├── \(name)/",
+                "│   ├── App/\(name)App.swift",
+                "│   ├── Models/",
+                "│   ├── Views/ContentView.swift",
+                "│   └── Services/",
+                "├── \(name)Tests/",
+                "├── docs/xcode-setup.md",
+            ]
+        case .swiftPackage:
+            lines += [
+                "├── Package.swift",
+                "├── Sources/\(name)/",
+                "└── Tests/\(name)Tests/",
+            ]
+        }
+
+        lines += [
             "├── README.md",
-            "├── AGENTS.md",
+            "├── \(layout.agentsFileName)",
             "├── .gitignore",
-            "└── .cursor/",
-            "    └── skills/",
         ]
-        for (i, skill) in skills.enumerated() {
-            let prefix = i == skills.count - 1 ? "        └── " : "        ├── "
-            lines.append("\(prefix)\(skill.slug)/")
+
+        if layout.ide == .cursor {
+            lines += ["└── .cursor/"]
+            if layout.rulesRelativePath != nil {
+                lines.append("    ├── rules/swift-project.mdc")
+            }
+            lines.append("    └── skills/")
+            appendSkillLines(to: &lines, skills: skills, indent: "        ")
+        } else {
+            lines.append("└── \(layout.skillsRelativePath)/")
+            appendSkillLines(to: &lines, skills: skills, indent: "    ")
         }
-        if skills.isEmpty {
-            lines.append("        └── (vazio)")
-        }
+
         return lines
     }
 
-    static func scaffold(
+    private nonisolated static func appendSkillLines(
+        to lines: inout [String],
+        skills: [SkillScaffoldItem],
+        indent: String
+    ) {
+        if skills.isEmpty {
+            lines.append("\(indent)└── (vazio)")
+            return
+        }
+        for (i, skill) in skills.enumerated() {
+            let prefix = i == skills.count - 1 ? "└── " : "├── "
+            lines.append("\(indent)\(prefix)\(skill.slug)/")
+        }
+    }
+
+    nonisolated static func scaffold(
         _ request: ProjectScaffoldRequest,
         onProgress: (@Sendable (SkillInstallProgress) -> Void)? = nil
     ) async throws -> ProjectScaffoldResult {
@@ -67,6 +116,7 @@ enum ProjectScaffolder {
               !trimmedName.hasPrefix(".")
         else { throw ProjectScaffolderError.invalidName }
 
+        let layout = IDEProjectLayout.effectiveLayout(for: request.ideTool)
         var log: [String] = ["Criando estrutura em \(request.parentDirectory.path)…"]
 
         let projectURL = request.parentDirectory.appendingPathComponent(trimmedName, isDirectory: true)
@@ -81,17 +131,31 @@ enum ProjectScaffolder {
             throw ProjectScaffolderError.directoryExists(projectURL)
         }
         try FileManager.default.createDirectory(at: projectURL, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(
-            at: projectURL.appendingPathComponent(".cursor/skills", isDirectory: true),
-            withIntermediateDirectories: true
+
+        try SwiftProjectSkeletonBuilder.build(
+            projectName: trimmedName,
+            kind: request.swiftProjectKind,
+            at: projectURL
         )
-        log.append("Pastas criadas.")
+        log.append("Esqueleto Swift (\(request.swiftProjectKind.displayName)) criado.")
+
+        let skillsRoot = layout.skillsDirectory(projectRoot: projectURL)
+        try FileManager.default.createDirectory(at: skillsRoot, withIntermediateDirectories: true)
+
+        if layout.ide == .cursor {
+            try CursorProjectConfigurator.configure(
+                projectRoot: projectURL,
+                layout: layout,
+                projectName: trimmedName
+            )
+            log.append("Configuração Cursor (.cursor/rules, .cursorignore) aplicada.")
+        }
 
         if request.installSkills, !request.skills.isEmpty {
-            log.append("Instalando skills via Git…")
+            log.append("Instalando skills via Git em \(layout.skillsRelativePath)…")
             installFailures = try await SkillGitInstaller.install(
                 skills: request.skills,
-                into: projectURL,
+                skillsRoot: skillsRoot,
                 onProgress: onProgress
             )
             if installFailures.isEmpty {
@@ -105,18 +169,23 @@ enum ProjectScaffolder {
             projectName: trimmedName,
             context: request.contextMarkdown,
             skills: request.skills,
+            swiftProjectKind: request.swiftProjectKind,
+            layout: layout,
             installSkillsFailed: !installFailures.isEmpty && request.installSkills
         )
         let agents = ProjectTemplateBuilder.agentsMD(
             projectName: trimmedName,
             context: request.contextMarkdown,
-            skills: request.skills
+            skills: request.skills,
+            swiftProjectKind: request.swiftProjectKind,
+            layout: layout
         )
 
         try writeFile(readme, to: projectURL.appendingPathComponent("README.md"))
-        try writeFile(agents, to: projectURL.appendingPathComponent("AGENTS.md"))
-        try writeFile(ProjectTemplateBuilder.gitignore, to: projectURL.appendingPathComponent(".gitignore"))
-        log.append("README.md, AGENTS.md e .gitignore escritos.")
+        try writeFile(agents, to: layout.agentsFileURL(projectRoot: projectURL))
+        let gitignore = try GitignoreTemplateLoader.content(for: request.swiftProjectKind)
+        try writeFile(gitignore, to: projectURL.appendingPathComponent(".gitignore"))
+        log.append("README.md, \(layout.agentsFileName) e .gitignore escritos.")
 
         if request.gitInit, let git = SkillGitInstaller.gitExecutable() {
             try await runGitInit(git: git, at: projectURL)
@@ -130,7 +199,7 @@ enum ProjectScaffolder {
         )
     }
 
-    private static func writeFile(_ content: String, to url: URL) throws {
+    private nonisolated static func writeFile(_ content: String, to url: URL) throws {
         do {
             try content.write(to: url, atomically: true, encoding: .utf8)
         } catch {
@@ -138,7 +207,7 @@ enum ProjectScaffolder {
         }
     }
 
-    private static func runGitInit(git: String, at url: URL) async throws {
+    private nonisolated static func runGitInit(git: String, at url: URL) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: git)

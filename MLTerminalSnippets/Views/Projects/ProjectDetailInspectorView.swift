@@ -19,6 +19,7 @@ struct ProjectDetailInspectorView: View {
                             .font(.title2.weight(.semibold))
 
                         LabeledContent("IDE", value: project.ideTool.displayName)
+                        LabeledContent("Tipo", value: project.swiftProjectKind.displayName)
                         LabeledContent("Criado", value: project.createdAt.formatted())
                         if !project.outputPathDisplay.isEmpty {
                             LabeledContent("Pasta") {

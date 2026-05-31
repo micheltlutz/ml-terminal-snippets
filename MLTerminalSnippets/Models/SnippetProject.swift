@@ -15,6 +15,7 @@ final class SnippetProject {
     var outputPathBookmark: Data?
     var outputPathDisplay: String = ""
     var ideToolRaw: String = IDETool.cursor.rawValue
+    var swiftProjectKindRaw: String = SwiftProjectKind.macOSApp.rawValue
     var createdAt: Date = Date.now
     var updatedAt: Date = Date.now
     var gitInitOnGenerate: Bool = true
@@ -30,6 +31,7 @@ final class SnippetProject {
         outputPathBookmark: Data? = nil,
         outputPathDisplay: String = "",
         ideTool: IDETool = .cursor,
+        swiftProjectKind: SwiftProjectKind = .macOSApp,
         createdAt: Date = .now,
         updatedAt: Date = .now,
         gitInitOnGenerate: Bool = true,
@@ -42,6 +44,7 @@ final class SnippetProject {
         self.outputPathBookmark = outputPathBookmark
         self.outputPathDisplay = outputPathDisplay
         self.ideToolRaw = ideTool.rawValue
+        self.swiftProjectKindRaw = swiftProjectKind.rawValue
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.gitInitOnGenerate = gitInitOnGenerate
@@ -52,6 +55,11 @@ final class SnippetProject {
     var ideTool: IDETool {
         get { IDETool(rawValue: ideToolRaw) ?? .cursor }
         set { ideToolRaw = newValue.rawValue }
+    }
+
+    var swiftProjectKind: SwiftProjectKind {
+        get { SwiftProjectKind(rawValue: swiftProjectKindRaw) ?? .macOSApp }
+        set { swiftProjectKindRaw = newValue.rawValue }
     }
 
     func touch() {

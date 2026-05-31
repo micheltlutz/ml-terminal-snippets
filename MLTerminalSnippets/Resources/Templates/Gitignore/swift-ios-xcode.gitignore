@@ -1,0 +1,25 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Cursor (manter .cursor/skills versionado)
+.cursor/projects/
+
+# Agents installer cache
+.agents/
+
+# Env / secrets
+.env
+*.pem

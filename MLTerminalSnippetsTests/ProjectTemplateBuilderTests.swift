@@ -8,17 +8,18 @@ import Testing
 
 struct ProjectTemplateBuilderTests {
     @Test func readmeContainsProjectName() {
-        let skill = SkillRepository(
+        let skill = SkillScaffoldItem(
             name: "SwiftUI Pro",
             gitURL: "https://github.com/twostraws/SwiftUI-Agent-Skill",
             skillFolderName: "swiftui-pro",
-            slug: "swiftui-pro",
-            isBuiltIn: true
+            slug: "swiftui-pro"
         )
         let md = ProjectTemplateBuilder.readme(
             projectName: "MyApp",
             context: "Contexto de teste",
             skills: [skill],
+            swiftProjectKind: .macOSApp,
+            layout: IDEProjectLayout.layout(for: .cursor),
             installSkillsFailed: false
         )
         #expect(md.contains("# MyApp"))
@@ -27,7 +28,7 @@ struct ProjectTemplateBuilderTests {
     }
 
     @Test func agentsMDListsSkills() {
-        let skill = SkillRepository(
+        let skill = SkillScaffoldItem(
             name: "Swift Architecture",
             gitURL: "https://github.com/efremidze/swift-architecture-skill",
             skillFolderName: "swift-architecture-skill",
@@ -36,20 +37,27 @@ struct ProjectTemplateBuilderTests {
         let md = ProjectTemplateBuilder.agentsMD(
             projectName: "ArchApp",
             context: "App com MVVM",
-            skills: [skill]
+            skills: [skill],
+            swiftProjectKind: .macOSApp,
+            layout: IDEProjectLayout.layout(for: .cursor)
         )
         #expect(md.contains("ArchApp"))
         #expect(md.contains("swift-architecture-skill"))
     }
 
     @Test func fileTreePreviewStructure() {
-        let skill = SkillRepository(
+        let skill = SkillScaffoldItem(
             name: "Test",
             gitURL: "https://github.com/example/repo",
             skillFolderName: "test-skill",
             slug: "test-skill"
         )
-        let lines = ProjectScaffolder.fileTreePreview(projectName: "Demo", skills: [skill])
+        let lines = ProjectScaffolder.fileTreePreview(
+            projectName: "Demo",
+            swiftProjectKind: .macOSApp,
+            ideTool: .cursor,
+            skills: [skill]
+        )
         #expect(lines.first?.contains("Demo/") == true)
         #expect(lines.contains { $0.contains("AGENTS.md") })
         #expect(lines.contains { $0.contains("test-skill") })

@@ -5,7 +5,7 @@
 **MLTerminalSnippets** é um app macOS nativo para:
 
 1. Gerenciar **repositórios Git de Agent Skills** (cadastro, edição, sync iCloud).
-2. **Gerar projetos** com contexto, skills selecionados e scaffold para **Cursor** (`AGENTS.md`, `.cursor/skills/`, etc.).
+2. **Gerar projetos** com contexto, skills, tipo Swift (macOS/iOS/SPM) e scaffold **Cursor** (`AGENTS.md`, esqueleto Swift, `.cursor/skills/`, regras).
 3. Cadastrar **acessos SSH** e abrir o comando no **Terminal.app**.
 
 ## Stack
@@ -41,8 +41,10 @@ flowchart TB
   subgraph services [Servicos]
     Seed[SeedDataService]
     Scaffold[ProjectScaffolder]
+    Skeleton[SwiftProjectSkeletonBuilder]
     GitInstall[SkillGitInstaller]
     Templates[ProjectTemplateBuilder]
+    GitignoreL[GitignoreTemplateLoader]
     SSHCmd[SSHCommandBuilder]
     Terminal[TerminalLauncher]
     Bookmark[BookmarkStore]
@@ -61,6 +63,8 @@ flowchart TB
   Shell --> SSH
   Repos --> SD
   Projects --> Scaffold
+  Scaffold --> Skeleton
+  Scaffold --> GitignoreL
   Scaffold --> GitInstall
   SSH --> SSHCmd
   SSH --> Terminal
@@ -106,9 +110,9 @@ Na primeira execução, `SeedDataService` insere 5 skills (SwiftUI Pro, SwiftDat
 
 ### Novo projeto (wizard)
 
-1. Usuário preenche 5 etapas (identidade → contexto → skills → destino → revisão).
-2. `ProjectScaffolder` cria pasta, README, AGENTS.md, `.gitignore`.
-3. Opcional: `SkillGitInstaller` (sparse clone) → `.cursor/skills/{slug}/`.
+1. Usuário preenche 5 etapas (identidade com **tipo Swift** → contexto → skills → destino → revisão).
+2. `ProjectScaffolder` cria esqueleto Swift, config Cursor, README, AGENTS.md, `.gitignore` (template).
+3. Opcional: `SkillGitInstaller` (sparse clone) → `{layout.skillsRelativePath}/{slug}/`.
 4. Opcional: `git init`.
 5. Persiste `SnippetProject` com bookmark da pasta.
 
