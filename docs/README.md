@@ -7,6 +7,7 @@
 | Documento | Conteúdo |
 |-----------|----------|
 | [Arquitetura](architecture.md) | Stack, camadas, modelos, fluxos e estrutura de pastas |
+| [Sidebar e botão ocultar](navigation-sidebar.md) | Formato da sidebar, `columnVisibility` e toggle nativo macOS |
 | [Configuração e execução](setup.md) | Xcode, iCloud, sandbox, Terminal, debug |
 | [ADRs](adr/README.md) | Registros de decisões arquiteturais |
 

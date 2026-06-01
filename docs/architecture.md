@@ -126,6 +126,8 @@ Na primeira execução, `SeedDataService` insere 5 skills (SwiftUI Pro, SwiftDat
 
 Sidebar reserva itens desabilitados: **Templates**, **Catálogo**, **Snippets**. Novas features = novo `AppSection` + pasta em `Views/` sem reescrever o shell (ver [ADR 0005](adr/0005-three-column-navigation-shell.md)).
 
+Formato da sidebar, grupos de menu e configuração do botão nativo de ocultar/mostrar: [navigation-sidebar.md](navigation-sidebar.md).
+
 ## Testes
 
 | Arquivo | Escopo | Tags |

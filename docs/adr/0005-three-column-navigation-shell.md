@@ -35,6 +35,13 @@ O app terá várias áreas (Início, Repositórios, Projetos, SSH, Configuraçõ
 - `AppState` (`@Observable`) — seleção, busca, modos de inspector (`RepositoryInspectorMode`, `SSHInspectorMode`, `ProjectDetailMode`)
 - CRUD no **inspector** (coluna 3), não em sheets
 
+### Sidebar e visibilidade de colunas
+
+- Coluna 1: `AppSidebarView` — `List` agrupada por `SidebarGroup`, seleção em `$appState.activeSection`, estilo `.sidebar`, largura ~200 pt.
+- Visibilidade: `AppState.columnVisibility` (padrão `.all`) ligado a `NavigationSplitView(columnVisibility:)` em `AppShellView`.
+- Botão ocultar/mostrar: toggle **nativo** do macOS (sem botão customizado no código). Exige `.navigationTitle(...)` na view-folha da coluna visível para a toolbar aparecer.
+- Detalhes, valores de `NavigationSplitViewVisibility` e checklist: [navigation-sidebar.md](../navigation-sidebar.md).
+
 ### Componentes partilhados
 
 `SearchField`, `EmptyStateView`, `SyncStatusView`, `SkillChip`, `StepIndicator`, `FileTreePreview`.
